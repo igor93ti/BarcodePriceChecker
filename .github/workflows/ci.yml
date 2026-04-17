@@ -41,9 +41,7 @@ jobs:
         run: dotnet build --no-restore -c Release
 
       - name: Executar testes
-        run: dotnet test --no-build -c Release --verbosity normal \
-          --collect:"XPlat Code Coverage" \
-          --results-directory ./coverage
+        run: dotnet test --no-build -c Release --verbosity normal --results-directory ./coverage
 
       - name: Upload cobertura de código
         uses: actions/upload-artifact@v4
