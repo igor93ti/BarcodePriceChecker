@@ -15,6 +15,13 @@ public static class DependencyInjection
     {
         services.Configure<MercadoLivreOptions>(
             configuration.GetSection(MercadoLivreOptions.SectionName));
+        services.Configure<CosmosOptions>(
+            configuration.GetSection(CosmosOptions.SectionName));
+
+        services.AddHttpClient<CosmosProductResolver>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
 
         services.AddHttpClient<OpenFoodFactsProductResolver>(client =>
         {
@@ -47,7 +54,21 @@ public static class DependencyInjection
             var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<MercadoLivreTokenService>>();
             return new MercadoLivreTokenService(httpClient, options, logger);
         });
-        services.AddScoped<IBarcodeProductResolver, OpenFoodFactsProductResolver>();
+
+        // Resolvers de produto — ordem importa (Cosmos primeiro, OpenFoodFacts fallback)
+        services.AddScoped<CosmosProductResolver>();
+        services.AddScoped<OpenFoodFactsProductResolver>();
+        services.AddScoped<IBarcodeProductResolver>(sp =>
+        {
+            var resolvers = new IBarcodeProductResolver[]
+            {
+                sp.GetRequiredService<CosmosProductResolver>(),
+                sp.GetRequiredService<OpenFoodFactsProductResolver>()
+            };
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ChainedProductResolver>>();
+            return new ChainedProductResolver(resolvers, logger);
+        });
+
         services.AddScoped<IPriceSearchService, MercadoLivrePriceService>();
         services.AddScoped<IPriceSearchService, MercadoLivreCatalogService>();
         services.AddScoped<IPriceComparisonService, PriceComparisonService>();

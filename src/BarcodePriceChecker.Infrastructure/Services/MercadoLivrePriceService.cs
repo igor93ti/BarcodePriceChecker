@@ -41,10 +41,15 @@ public class MercadoLivrePriceService : IPriceSearchService
                 return Enumerable.Empty<PriceOffer>();
             }
 
-            var results = await SearchByQuery(barcode, token, cancellationToken);
+            // Prioriza busca por nome do produto (muito mais resultados)
+            // Cai para busca por código de barras apenas se o nome não estiver disponível
+            var hasName = !string.IsNullOrWhiteSpace(productName) && productName != barcode;
+            var results = hasName
+                ? await SearchByQuery(productName, token, cancellationToken)
+                : new List<PriceOffer>();
 
-            if (!results.Any() && !string.IsNullOrWhiteSpace(productName) && productName != barcode)
-                results = await SearchByQuery(productName, token, cancellationToken);
+            if (!results.Any())
+                results = await SearchByQuery(barcode, token, cancellationToken);
 
             return results;
         }
