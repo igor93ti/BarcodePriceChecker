@@ -4,7 +4,7 @@ public class PriceComparison
 {
     public Product Product { get; set; } = new();
     public List<PriceOffer> Offers { get; set; } = new();
-    public decimal? AveragePrice => Offers.Any() ? Math.Round(Offers.Average(o => o.Price), 2) : null;
+    public decimal? AveragePrice => Offers.Any() ? Offers.Average(o => o.Price) : null;
     public decimal? LowestPrice => Offers.Any() ? Offers.Min(o => o.Price) : null;
     public decimal? HighestPrice => Offers.Any() ? Offers.Max(o => o.Price) : null;
     public PriceOffer? CheapestOffer => Offers.OrderBy(o => o.Price).FirstOrDefault();

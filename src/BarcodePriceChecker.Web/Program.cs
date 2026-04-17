@@ -19,7 +19,7 @@ try
         .AddInteractiveServerComponents();
 
     // Infraestrutura (scrapers, APIs externas)
-    builder.Services.AddInfrastructure();
+    builder.Services.AddInfrastructure(builder.Configuration);
 
     // Cache em memória para evitar buscas repetidas
     builder.Services.AddMemoryCache();

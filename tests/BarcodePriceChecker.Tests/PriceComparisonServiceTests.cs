@@ -4,6 +4,7 @@ using BarcodePriceChecker.Domain.Entities;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Xunit;
 
 namespace BarcodePriceChecker.Tests;
 

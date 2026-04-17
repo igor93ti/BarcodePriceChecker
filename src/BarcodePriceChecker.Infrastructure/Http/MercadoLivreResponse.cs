@@ -46,3 +46,39 @@ public class MercadoLivrePaging
     [JsonPropertyName("total")]
     public int Total { get; set; }
 }
+
+public class MercadoLivreTokenResponse
+{
+    [JsonPropertyName("access_token")]
+    public string AccessToken { get; set; } = string.Empty;
+
+    [JsonPropertyName("expires_in")]
+    public int ExpiresIn { get; set; }
+}
+
+public class MercadoLivreProductSearchResponse
+{
+    [JsonPropertyName("results")]
+    public List<MercadoLivreProduct> Results { get; set; } = new();
+}
+
+public class MercadoLivreProduct
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("buy_box_winner")]
+    public MercadoLivreBuyBoxWinner? BuyBoxWinner { get; set; }
+}
+
+public class MercadoLivreBuyBoxWinner
+{
+    [JsonPropertyName("price")]
+    public decimal Price { get; set; }
+
+    [JsonPropertyName("item_id")]
+    public string ItemId { get; set; } = string.Empty;
+}
