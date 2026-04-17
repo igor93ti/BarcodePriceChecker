@@ -1,8 +1,10 @@
 name: CD — Deploy para Azure
 
 on:
-  push:
-    branches: ["main"]
+  workflow_run:
+    workflows: ["CI — Build & Test"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -19,11 +21,12 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────
-  # 1. CI roda antes do deploy
+  # 1. Build (só roda se CI passou ou trigger manual)
   # ──────────────────────────────────────────────
   build:
     name: Build & Publish
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       artifact-name: ${{ steps.set-artifact.outputs.name }}
 
@@ -95,13 +98,12 @@ jobs:
       - name: Health check pós-deploy
         run: |
           sleep 30
-          curl --fail https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health \
-            || (echo "Health check falhou!" && exit 1)
+          curl --fail https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health || (echo "Health check falhou!" && exit 1)
 
       - name: Notificação de sucesso
         if: success()
-        run: echo "✅ Deploy realizado com sucesso em $(date)"
+        run: echo "Deploy realizado com sucesso em $(date)"
 
       - name: Notificação de falha
         if: failure()
-        run: echo "❌ Deploy falhou em $(date)"
+        run: echo "Deploy falhou em $(date)"

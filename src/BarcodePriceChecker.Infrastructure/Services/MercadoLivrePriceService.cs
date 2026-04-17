@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 using BarcodePriceChecker.Application.Interfaces;
 using BarcodePriceChecker.Domain.Entities;
@@ -6,27 +7,24 @@ using Microsoft.Extensions.Logging;
 
 namespace BarcodePriceChecker.Infrastructure.Services;
 
-/// <summary>
-/// Busca preços na API pública do Mercado Livre (sem autenticação necessária).
-/// Documentação: https://developers.mercadolivre.com.br/
-/// Endpoint: GET https://api.mercadolibre.com/sites/MLB/search?q={query}&limit=10
-/// </summary>
 public class MercadoLivrePriceService : IPriceSearchService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<MercadoLivrePriceService> _logger;
+    private readonly IMercadoLivreTokenService _tokenService;
+
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     public string SourceName => "Mercado Livre";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
-    public MercadoLivrePriceService(HttpClient httpClient, ILogger<MercadoLivrePriceService> logger)
+    public MercadoLivrePriceService(
+        HttpClient httpClient,
+        ILogger<MercadoLivrePriceService> logger,
+        IMercadoLivreTokenService tokenService)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _tokenService = tokenService;
     }
 
     public async Task<IEnumerable<PriceOffer>> SearchAsync(
@@ -36,13 +34,17 @@ public class MercadoLivrePriceService : IPriceSearchService
     {
         try
         {
-            // Tenta primeiro pelo código de barras, depois pelo nome
-            var results = await SearchByQuery(barcode, cancellationToken);
+            var token = await _tokenService.GetTokenAsync(cancellationToken);
+            if (token is null)
+            {
+                _logger.LogWarning("Credenciais ML não configuradas. Defina MercadoLivre:ClientId e MercadoLivre:ClientSecret.");
+                return Enumerable.Empty<PriceOffer>();
+            }
+
+            var results = await SearchByQuery(barcode, token, cancellationToken);
 
             if (!results.Any() && !string.IsNullOrWhiteSpace(productName) && productName != barcode)
-            {
-                results = await SearchByQuery(productName, cancellationToken);
-            }
+                results = await SearchByQuery(productName, token, cancellationToken);
 
             return results;
         }
@@ -53,15 +55,23 @@ public class MercadoLivrePriceService : IPriceSearchService
         }
     }
 
-    private async Task<List<PriceOffer>> SearchByQuery(string query, CancellationToken cancellationToken)
+    private async Task<List<PriceOffer>> SearchByQuery(
+        string query, string token, CancellationToken cancellationToken)
     {
         var encodedQuery = Uri.EscapeDataString(query);
         var url = $"https://api.mercadolibre.com/sites/MLB/search?q={encodedQuery}&limit=10&condition=new";
 
         _logger.LogDebug("Consultando Mercado Livre: {Url}", url);
 
-        var response = await _httpClient.GetAsync(url, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Mercado Livre retornou {StatusCode} para: {Query}", response.StatusCode, query);
+            return new List<PriceOffer>();
+        }
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         var data = JsonSerializer.Deserialize<MercadoLivreSearchResponse>(json, JsonOptions);
