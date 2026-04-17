@@ -1,0 +1,271 @@
+@page "/"
+@rendermode InteractiveServer
+@using BarcodePriceChecker.Application.DTOs
+@using BarcodePriceChecker.Application.Interfaces
+@using BarcodePriceChecker.Domain.Entities
+@inject IPriceComparisonService PriceComparisonService
+@inject ILogger<Home> Logger
+
+<PageTitle>PriceCheck - Comparar Preços</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+
+        <!-- Hero -->
+        <div class="text-center mb-4">
+            <div class="display-1 text-primary mb-2">
+                <i class="bi bi-upc-scan"></i>
+            </div>
+            <h1 class="h3 fw-bold">Comparador de Preços</h1>
+            <p class="text-muted">
+                Escaneie ou digite o código de barras do produto para saber se está pagando caro ou barato.
+            </p>
+        </div>
+
+        <!-- Formulário de busca -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <EditForm Model="Request" OnValidSubmit="HandleSearch">
+                    <DataAnnotationsValidator />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-upc me-1"></i> Código de Barras
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-upc"></i></span>
+                            <InputText
+                                class="form-control form-control-lg"
+                                @bind-Value="Request.Barcode"
+                                placeholder="Ex: 7891000315507"
+                                inputmode="numeric"
+                                autofocus />
+                        </div>
+                        <ValidationMessage For="() => Request.Barcode" class="text-danger small mt-1" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tag me-1"></i> Preço que você está vendo (opcional)
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <InputNumber
+                                class="form-control form-control-lg"
+                                @bind-Value="Request.UserPrice"
+                                placeholder="0,00" />
+                        </div>
+                        <ValidationMessage For="() => Request.UserPrice" class="text-danger small mt-1" />
+                        <div class="form-text">Se informado, diremos se o preço está caro ou barato.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
+                        @if (IsLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>Buscando preços...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-search me-2"></i>
+                            <span>Comparar Preços</span>
+                        }
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+
+        <!-- Erro -->
+        @if (ErrorMessage is not null)
+        {
+            <div class="alert alert-danger d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>@ErrorMessage</div>
+            </div>
+        }
+
+    </div>
+</div>
+
+<!-- Resultados -->
+@if (Comparison is not null)
+{
+    <div class="row justify-content-center mt-2">
+        <div class="col-12 col-lg-10">
+
+            <!-- Info do produto -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        @if (!string.IsNullOrWhiteSpace(Comparison.Product.ImageUrl))
+                        {
+                            <div class="col-auto">
+                                <img src="@Comparison.Product.ImageUrl" alt="@Comparison.Product.Name"
+                                     class="rounded" style="width:80px;height:80px;object-fit:contain;" />
+                            </div>
+                        }
+                        <div class="col">
+                            <h2 class="h5 mb-1 fw-bold">@Comparison.Product.Name</h2>
+                            @if (!string.IsNullOrWhiteSpace(Comparison.Product.Brand))
+                            {
+                                <span class="badge bg-secondary me-1">@Comparison.Product.Brand</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Comparison.Product.Category))
+                            {
+                                <span class="badge bg-light text-dark">@Comparison.Product.Category</span>
+                            }
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-upc me-1"></i>@Comparison.Product.Barcode
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards de resumo de preços -->
+            @if (Comparison.Offers.Any())
+            {
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 bg-success bg-opacity-10 text-center p-3">
+                            <div class="text-success fw-bold h5 mb-0">
+                                R$ @Comparison.LowestPrice?.ToString("N2")
+                            </div>
+                            <div class="small text-muted mt-1">Menor preço</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 bg-primary bg-opacity-10 text-center p-3">
+                            <div class="text-primary fw-bold h5 mb-0">
+                                R$ @Comparison.AveragePrice?.ToString("N2")
+                            </div>
+                            <div class="small text-muted mt-1">Preço médio</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 bg-danger bg-opacity-10 text-center p-3">
+                            <div class="text-danger fw-bold h5 mb-0">
+                                R$ @Comparison.HighestPrice?.ToString("N2")
+                            </div>
+                            <div class="small text-muted mt-1">Maior preço</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card border-0 bg-light text-center p-3">
+                            <div class="fw-bold h5 mb-0">@Comparison.Offers.Count</div>
+                            <div class="small text-muted mt-1">Ofertas encontradas</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Avaliação do preço do usuário -->
+                @if (Request.UserPrice.HasValue)
+                {
+                    var evaluation = Comparison.EvaluatePrice(Request.UserPrice.Value);
+                    var (alertClass, icon, message) = evaluation switch
+                    {
+                        PriceEvaluation.Cheap => ("alert-success", "bi-emoji-smile-fill", $"Ótimo negócio! Este preço está {Math.Abs((Request.UserPrice.Value - Comparison.AveragePrice!.Value) / Comparison.AveragePrice.Value * 100):N0}% abaixo da média."),
+                        PriceEvaluation.Expensive => ("alert-danger", "bi-emoji-frown-fill", $"Preço alto! Está {Math.Abs((Request.UserPrice.Value - Comparison.AveragePrice!.Value) / Comparison.AveragePrice.Value * 100):N0}% acima da média. Veja as opções mais baratas abaixo."),
+                        PriceEvaluation.Average => ("alert-info", "bi-emoji-neutral-fill", "Preço na média do mercado."),
+                        _ => ("alert-secondary", "bi-question-circle-fill", "Não foi possível avaliar o preço.")
+                    };
+
+                    <div class="alert @alertClass d-flex align-items-center mb-4" role="alert">
+                        <i class="bi @icon fs-4 me-3"></i>
+                        <div>
+                            <strong>Você informou: R$ @Request.UserPrice.Value.ToString("N2")</strong> &mdash; @message
+                        </div>
+                    </div>
+                }
+
+                <!-- Tabela de ofertas -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white fw-semibold border-bottom">
+                        <i class="bi bi-list-ul me-2"></i>Todas as Ofertas
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Produto</th>
+                                    <th>Fonte</th>
+                                    <th>Vendedor</th>
+                                    <th class="text-end">Preço</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var (offer, index) in Comparison.Offers.Select((o, i) => (o, i)))
+                                {
+                                    var isCheapest = index == 0;
+                                    <tr class="@(isCheapest ? "table-success" : "")">
+                                        <td class="text-muted small">@(index + 1)</td>
+                                        <td>
+                                            <span class="fw-semibold small">@offer.ProductName</span>
+                                            @if (isCheapest)
+                                            {
+                                                <span class="badge bg-success ms-2">Mais barato</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary">
+                                                @offer.Source
+                                            </span>
+                                        </td>
+                                        <td class="text-muted small">@offer.Seller</td>
+                                        <td class="text-end fw-bold text-success">
+                                            R$ @offer.Price.ToString("N2")
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="@offer.Url" target="_blank"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning d-flex align-items-center">
+                    <i class="bi bi-exclamation-circle me-2 fs-5"></i>
+                    <div>Nenhuma oferta encontrada para este produto. Tente novamente mais tarde.</div>
+                </div>
+            }
+
+        </div>
+    </div>
+}
+
+@code {
+    private PriceSearchRequest Request { get; set; } = new();
+    private PriceComparison? Comparison { get; set; }
+    private bool IsLoading { get; set; }
+    private string? ErrorMessage { get; set; }
+
+    private async Task HandleSearch()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        Comparison = null;
+
+        try
+        {
+            Comparison = await PriceComparisonService.CompareAsync(Request.Barcode);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Erro ao comparar preços para barcode: {Barcode}", Request.Barcode);
+            ErrorMessage = "Ocorreu um erro ao buscar os preços. Verifique o código de barras e tente novamente.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

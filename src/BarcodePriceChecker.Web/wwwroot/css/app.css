@@ -1,0 +1,56 @@
+/* PriceCheck — estilos globais */
+
+html, body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}
+
+.navbar-brand {
+    font-size: 1.4rem;
+    letter-spacing: -0.5px;
+}
+
+.card {
+    border-radius: 12px;
+}
+
+.btn-primary {
+    border-radius: 8px;
+}
+
+.table th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+/* Loading spinner */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Barcode input */
+.form-control-lg {
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+}
+
+/* Responsivo */
+@media (max-width: 576px) {
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+}

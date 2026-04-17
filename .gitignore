@@ -1,0 +1,44 @@
+## .NET gitignore
+**/[Bb]in/
+**/[Oo]bj/
+**/[Ll]ogs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Publish
+**/publish/
+**/PublishProfiles/
+
+# User secrets
+**/secrets.json
+
+# Packages
+!**/[Pp]ackages/build/
+packages/
+*.nupkg
+*.snupkg
+
+# dotnet test
+TestResults/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Docker volumes (não comitar dados de volume)
+docker/data/

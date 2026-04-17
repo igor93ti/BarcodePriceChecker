@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <nav class="navbar navbar-dark bg-primary navbar-expand-md px-3 shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="bi bi-upc-scan me-2"></i>PriceCheck
+            </a>
+            <span class="navbar-text text-white-50 small">
+                Comparador de preços por código de barras
+            </span>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        @Body
+    </main>
+
+    <footer class="footer mt-auto py-3 bg-light border-top text-center text-muted small">
+        <div class="container">
+            PriceCheck &mdash; Dados obtidos via Mercado Livre API e Open Food Facts &bull;
+            <a href="https://github.com" target="_blank" class="text-muted">GitHub</a>
+        </div>
+    </footer>
+</div>

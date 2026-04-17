@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/*.user
+**/logs
+**/*.log
+docker-compose*.yml
+.github
+README.md

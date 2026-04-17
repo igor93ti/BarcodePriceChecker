@@ -1,0 +1,77 @@
+{
+  "id": null,
+  "uid": "pricechecker-main",
+  "title": "PriceChecker - Monitoramento",
+  "tags": ["dotnet", "pricechecker"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Requisições HTTP por segundo",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(http_requests_received_total[1m])",
+          "legendFormat": "{{method}} {{path}} {{code}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Latência HTTP (p95)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95 {{path}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Erros HTTP (5xx)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_received_total{code=~\"5..\"}[5m]))",
+          "legendFormat": "Erros/s"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Total de requisições",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(http_requests_received_total)",
+          "legendFormat": "Total"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Uso de memória .NET (MB)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "process_working_set_bytes / 1024 / 1024",
+          "legendFormat": "Working Set (MB)"
+        }
+      ]
+    }
+  ]
+}
