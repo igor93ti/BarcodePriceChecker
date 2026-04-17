@@ -14,8 +14,8 @@
 
 ```bash
 # Clone o repositório
-git clone https://github.com/SEU_USUARIO/barcode-price-checker.git
-cd barcode-price-checker
+git clone https://github.com/igor93ti/BarcodePriceChecker.git
+cd BarcodePriceChecker
 
 # Rode a aplicação
 dotnet run --project src/BarcodePriceChecker.Web
@@ -43,15 +43,13 @@ O dashboard **PriceChecker - Monitoramento** já vem pré-configurado.
 
 ## 3. GitHub — Criar repositório e configurar MCP
 
-### 3.1 Criar repositório
+### 3.1 Repositório
+
+Repositório já criado e configurado:
+**https://github.com/igor93ti/BarcodePriceChecker**
 
 ```bash
-git init
-git add .
-git commit -m "feat: initial project setup"
-git branch -M main
-git remote add origin https://github.com/SEU_USUARIO/barcode-price-checker.git
-git push -u origin main
+git clone https://github.com/igor93ti/BarcodePriceChecker.git
 ```
 
 ### 3.2 Instalar GitHub MCP (Claude Code)

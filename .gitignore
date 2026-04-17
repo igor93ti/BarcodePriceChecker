@@ -40,5 +40,8 @@ coverage/
 .env
 .env.local
 
+# Claude Code local settings (contain secrets)
+.claude/settings.local.json
+
 # Docker volumes (não comitar dados de volume)
 docker/data/
