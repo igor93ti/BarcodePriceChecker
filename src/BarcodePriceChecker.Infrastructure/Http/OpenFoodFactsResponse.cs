@@ -30,4 +30,7 @@ public class OpenFoodFactsProduct
 
     [JsonPropertyName("generic_name")]
     public string? GenericName { get; set; }
+
+    [JsonPropertyName("quantity")]
+    public string? Quantity { get; set; }
 }

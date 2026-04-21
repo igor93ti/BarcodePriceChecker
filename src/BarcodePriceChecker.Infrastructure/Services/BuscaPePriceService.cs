@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BarcodePriceChecker.Application.Interfaces;
 using BarcodePriceChecker.Domain.Entities;
 using HtmlAgilityPack;
@@ -61,6 +62,9 @@ public class BuscaPePriceService : IPriceSearchService
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
 
+            offers.AddRange(ParseNextDataOffers(doc));
+            if (offers.Any()) return offers;
+
             // Seletores baseados na estrutura atual do Buscapé
             // IMPORTANTE: Pode precisar de atualização se o site mudar o layout
             var productCards = doc.DocumentNode.SelectNodes("//div[contains(@class,'ProductCard')]");
@@ -101,5 +105,90 @@ public class BuscaPePriceService : IPriceSearchService
         }
 
         return offers;
+    }
+
+    private IEnumerable<PriceOffer> ParseNextDataOffers(HtmlDocument doc)
+    {
+        var scriptNode = doc.DocumentNode.SelectSingleNode("//script[@id='__NEXT_DATA__']");
+        if (scriptNode is null) return Enumerable.Empty<PriceOffer>();
+
+        try
+        {
+            using var json = JsonDocument.Parse(scriptNode.InnerText);
+
+            if (!TryGetProperty(json.RootElement, "props", out var props) ||
+                !TryGetProperty(props, "pageProps", out var pageProps) ||
+                !TryGetProperty(pageProps, "initialReduxState", out var state) ||
+                !TryGetProperty(state, "hits", out var hitsState) ||
+                !TryGetProperty(hitsState, "hits", out var hits) ||
+                hits.ValueKind != JsonValueKind.Array)
+            {
+                return Enumerable.Empty<PriceOffer>();
+            }
+
+            return hits.EnumerateArray()
+                .Select(ParseNextDataOffer)
+                .Where(offer => offer is not null)
+                .Cast<PriceOffer>()
+                .Take(5)
+                .ToList();
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogDebug(ex, "Falha ao ler dados JSON do Buscapé.");
+            return Enumerable.Empty<PriceOffer>();
+        }
+    }
+
+    private PriceOffer? ParseNextDataOffer(JsonElement hit)
+    {
+        if (!TryGetDecimal(hit, "price", out var price) || price <= 0)
+            return null;
+
+        var title = TryGetString(hit, "name", out var name) ? name : "Produto";
+        var seller = TryGetString(hit, "merchantName", out var merchantName) ? merchantName : "Buscapé";
+        var url = TryGetString(hit, "url", out var offerUrl) ? offerUrl : string.Empty;
+
+        return new PriceOffer
+        {
+            Source = SourceName,
+            ProductName = title,
+            Price = price,
+            Url = BuildBuscaPeUrl(url),
+            Seller = seller,
+            FetchedAt = DateTime.UtcNow,
+            IsAvailable = true
+        };
+    }
+
+    private static string BuildBuscaPeUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "https://www.buscape.com.br";
+        if (Uri.TryCreate(url, UriKind.Absolute, out _)) return url;
+
+        return $"https://www.buscape.com.br{url}";
+    }
+
+    private static bool TryGetProperty(JsonElement element, string name, out JsonElement value)
+    {
+        value = default;
+        return element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out value);
+    }
+
+    private static bool TryGetString(JsonElement element, string name, out string value)
+    {
+        value = string.Empty;
+
+        if (!TryGetProperty(element, name, out var property) || property.ValueKind != JsonValueKind.String)
+            return false;
+
+        value = property.GetString() ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private static bool TryGetDecimal(JsonElement element, string name, out decimal value)
+    {
+        value = 0;
+        return TryGetProperty(element, name, out var property) && property.TryGetDecimal(out value);
     }
 }

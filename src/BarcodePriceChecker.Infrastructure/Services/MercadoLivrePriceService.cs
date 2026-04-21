@@ -37,11 +37,11 @@ public class MercadoLivrePriceService : IPriceSearchService
         try
         {
             // Tenta primeiro pelo código de barras, depois pelo nome
-            var results = await SearchByQuery(barcode, cancellationToken);
+            var results = await SearchByQuery(barcode, barcode, cancellationToken);
 
             if (!results.Any() && !string.IsNullOrWhiteSpace(productName) && productName != barcode)
             {
-                results = await SearchByQuery(productName, cancellationToken);
+                results = await SearchByQuery(productName, barcode, cancellationToken);
             }
 
             return results;
@@ -53,7 +53,7 @@ public class MercadoLivrePriceService : IPriceSearchService
         }
     }
 
-    private async Task<List<PriceOffer>> SearchByQuery(string query, CancellationToken cancellationToken)
+    private async Task<List<PriceOffer>> SearchByQuery(string query, string barcode, CancellationToken cancellationToken)
     {
         var encodedQuery = Uri.EscapeDataString(query);
         var url = $"https://api.mercadolibre.com/sites/MLB/search?q={encodedQuery}&limit=10&condition=new";
@@ -76,6 +76,7 @@ public class MercadoLivrePriceService : IPriceSearchService
                 Source = SourceName,
                 ProductName = r.Title,
                 Price = r.Price,
+                Barcode = barcode,
                 Url = r.Permalink,
                 Seller = r.Seller?.Nickname ?? "Vendedor ML",
                 FetchedAt = DateTime.UtcNow,

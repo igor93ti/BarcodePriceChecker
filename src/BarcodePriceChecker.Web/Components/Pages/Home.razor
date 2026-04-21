@@ -114,6 +114,10 @@
                             {
                                 <span class="badge bg-light text-dark">@Comparison.Product.Category</span>
                             }
+                            @if (!string.IsNullOrWhiteSpace(Comparison.Product.Quantity))
+                            {
+                                <span class="badge bg-info bg-opacity-10 text-info-emphasis">@Comparison.Product.Quantity</span>
+                            }
                             <div class="text-muted small mt-1">
                                 <i class="bi bi-upc me-1"></i>@Comparison.Product.Barcode
                             </div>
@@ -137,23 +141,30 @@
                     <div class="col-6 col-md-3">
                         <div class="card border-0 bg-primary bg-opacity-10 text-center p-3">
                             <div class="text-primary fw-bold h5 mb-0">
-                                R$ @Comparison.AveragePrice?.ToString("N2")
+                                R$ @Comparison.ReferencePrice?.ToString("N2")
                             </div>
-                            <div class="small text-muted mt-1">Preço médio</div>
+                            <div class="small text-muted mt-1">Preço referência</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
-                        <div class="card border-0 bg-danger bg-opacity-10 text-center p-3">
-                            <div class="text-danger fw-bold h5 mb-0">
-                                R$ @Comparison.HighestPrice?.ToString("N2")
+                        <div class="card border-0 bg-warning bg-opacity-10 text-center p-3">
+                            <div class="text-warning-emphasis fw-bold h5 mb-0">
+                                @if (Comparison.TypicalLowPrice.HasValue && Comparison.TypicalHighPrice.HasValue)
+                                {
+                                    <span>R$ @Comparison.TypicalLowPrice.Value.ToString("N2") - @Comparison.TypicalHighPrice.Value.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
                             </div>
-                            <div class="small text-muted mt-1">Maior preço</div>
+                            <div class="small text-muted mt-1">Faixa típica</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="card border-0 bg-light text-center p-3">
-                            <div class="fw-bold h5 mb-0">@Comparison.Offers.Count</div>
-                            <div class="small text-muted mt-1">Ofertas encontradas</div>
+                            <div class="fw-bold h5 mb-0">@GetConfidenceText(Comparison.Confidence)</div>
+                            <div class="small text-muted mt-1">@Comparison.Offers.Count ofertas, @Comparison.SourceCount fontes</div>
                         </div>
                     </div>
                 </div>
@@ -162,11 +173,12 @@
                 @if (Request.UserPrice.HasValue)
                 {
                     var evaluation = Comparison.EvaluatePrice(Request.UserPrice.Value);
+                    var difference = Comparison.CalculateDifferenceFromReference(Request.UserPrice.Value);
                     var (alertClass, icon, message) = evaluation switch
                     {
-                        PriceEvaluation.Cheap => ("alert-success", "bi-emoji-smile-fill", $"Ótimo negócio! Este preço está {Math.Abs((Request.UserPrice.Value - Comparison.AveragePrice!.Value) / Comparison.AveragePrice.Value * 100):N0}% abaixo da média."),
-                        PriceEvaluation.Expensive => ("alert-danger", "bi-emoji-frown-fill", $"Preço alto! Está {Math.Abs((Request.UserPrice.Value - Comparison.AveragePrice!.Value) / Comparison.AveragePrice.Value * 100):N0}% acima da média. Veja as opções mais baratas abaixo."),
-                        PriceEvaluation.Average => ("alert-info", "bi-emoji-neutral-fill", "Preço na média do mercado."),
+                        PriceEvaluation.Cheap => ("alert-success", "bi-emoji-smile-fill", $"Ótimo negócio! Este preço está {Math.Abs(difference ?? 0):N0}% abaixo do preço de referência."),
+                        PriceEvaluation.Expensive => ("alert-danger", "bi-emoji-frown-fill", $"Preço alto! Está {Math.Abs(difference ?? 0):N0}% acima do preço de referência. Veja as opções mais baratas abaixo."),
+                        PriceEvaluation.Average => ("alert-info", "bi-emoji-neutral-fill", "Preço dentro da faixa normal para as ofertas encontradas."),
                         _ => ("alert-secondary", "bi-question-circle-fill", "Não foi possível avaliar o preço.")
                     };
 
@@ -247,6 +259,14 @@
     private PriceComparison? Comparison { get; set; }
     private bool IsLoading { get; set; }
     private string? ErrorMessage { get; set; }
+
+    private static string GetConfidenceText(PriceConfidence confidence) => confidence switch
+    {
+        PriceConfidence.High => "Alta",
+        PriceConfidence.Medium => "Média",
+        PriceConfidence.Low => "Baixa",
+        _ => "Sem dados"
+    };
 
     private async Task HandleSearch()
     {

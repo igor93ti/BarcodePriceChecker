@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddHttpClient<MercadoLivrePriceService>(client =>
         {
             client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("User-Agent", "BarcodePriceChecker/1.0 (contact: dev@example.com)");
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
