@@ -53,6 +53,7 @@ public class OpenFoodFactsProductResolver : IBarcodeProductResolver
                 Name = p.ProductNamePt ?? p.ProductName ?? p.GenericName ?? barcode,
                 Brand = p.Brands?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty,
                 Category = p.Categories?.Split(',').FirstOrDefault()?.Trim() ?? string.Empty,
+                Quantity = p.Quantity ?? string.Empty,
                 ImageUrl = p.ImageUrl ?? string.Empty,
                 Description = p.GenericName ?? string.Empty
             };

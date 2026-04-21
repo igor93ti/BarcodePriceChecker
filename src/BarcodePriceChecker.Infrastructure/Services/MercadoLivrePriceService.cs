@@ -37,26 +37,26 @@ public class MercadoLivrePriceService : IPriceSearchService
             var token = await _tokenService.GetTokenAsync(cancellationToken);
             if (token is null)
             {
-                _logger.LogWarning("Credenciais ML não configuradas. Defina MercadoLivre:ClientId e MercadoLivre:ClientSecret.");
+                _logger.LogWarning("Credenciais ML nao configuradas. Defina MercadoLivre:ClientId e MercadoLivre:ClientSecret.");
                 return Enumerable.Empty<PriceOffer>();
             }
 
-            var results = await SearchByQuery(barcode, token, cancellationToken);
+            var results = await SearchByQuery(barcode, barcode, token, cancellationToken);
 
             if (!results.Any() && !string.IsNullOrWhiteSpace(productName) && productName != barcode)
-                results = await SearchByQuery(productName, token, cancellationToken);
+                results = await SearchByQuery(productName, barcode, token, cancellationToken);
 
             return results;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao buscar preços no Mercado Livre para: {ProductName}", productName);
+            _logger.LogError(ex, "Erro ao buscar precos no Mercado Livre para: {ProductName}", productName);
             return Enumerable.Empty<PriceOffer>();
         }
     }
 
     private async Task<List<PriceOffer>> SearchByQuery(
-        string query, string token, CancellationToken cancellationToken)
+        string query, string barcode, string token, CancellationToken cancellationToken)
     {
         var encodedQuery = Uri.EscapeDataString(query);
         var url = $"https://api.mercadolibre.com/sites/MLB/search?q={encodedQuery}&limit=10&condition=new";
@@ -86,6 +86,7 @@ public class MercadoLivrePriceService : IPriceSearchService
                 Source = SourceName,
                 ProductName = r.Title,
                 Price = r.Price,
+                Barcode = barcode,
                 Url = r.Permalink,
                 Seller = r.Seller?.Nickname ?? "Vendedor ML",
                 FetchedAt = DateTime.UtcNow,

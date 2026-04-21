@@ -48,6 +48,7 @@ public class PriceComparisonServiceTests
         result.Offers.Should().HaveCount(2);
         result.LowestPrice.Should().Be(5.99m);
         result.AveragePrice.Should().Be(6.245m);
+        result.ReferencePrice.Should().Be(6.245m);
     }
 
     [Fact]
@@ -95,6 +96,31 @@ public class PriceComparisonServiceTests
     }
 
     [Fact]
+    public void ReferencePrice_IgnoresOutliersAndUsesMedian()
+    {
+        // Arrange
+        var comparison = new PriceComparison
+        {
+            Offers = new List<PriceOffer>
+            {
+                new() { Source = "A", Price = 9.90m },
+                new() { Source = "A", Price = 10.00m },
+                new() { Source = "B", Price = 10.10m },
+                new() { Source = "B", Price = 999.00m }
+            }
+        };
+
+        // Act
+        var evaluation = comparison.EvaluatePrice(12.00m);
+
+        // Assert
+        comparison.ReferencePrice.Should().Be(10.00m);
+        comparison.TypicalLowPrice.Should().Be(9.95m);
+        comparison.TypicalHighPrice.Should().Be(10.05m);
+        evaluation.Should().Be(PriceEvaluation.Expensive);
+    }
+
+    [Fact]
     public async Task CompareAsync_WhenSearchServiceThrows_ReturnsEmptyOffers()
     {
         // Arrange
@@ -114,4 +140,5 @@ public class PriceComparisonServiceTests
         // Assert
         result.Offers.Should().BeEmpty(); // não deve lançar exceção
     }
+
 }
