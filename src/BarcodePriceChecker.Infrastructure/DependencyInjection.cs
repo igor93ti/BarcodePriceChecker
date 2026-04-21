@@ -40,6 +40,14 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
+        services.AddHttpClient<BuscaPePriceService>(client =>
+        {
+            client.DefaultRequestHeaders.Add(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         services.AddSingleton<IMercadoLivreTokenService>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
@@ -51,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IBarcodeProductResolver, OpenFoodFactsProductResolver>();
         services.AddScoped<IPriceSearchService, MercadoLivrePriceService>();
         services.AddScoped<IPriceSearchService, MercadoLivreCatalogService>();
+        services.AddScoped<IPriceSearchService, BuscaPePriceService>();
         services.AddScoped<IPriceComparisonService, PriceComparisonService>();
 
         return services;
