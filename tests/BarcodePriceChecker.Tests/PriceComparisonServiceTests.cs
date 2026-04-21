@@ -1,9 +1,11 @@
 using BarcodePriceChecker.Application.Interfaces;
 using BarcodePriceChecker.Application.Services;
 using BarcodePriceChecker.Domain.Entities;
+using BarcodePriceChecker.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using System.Reflection;
 using Xunit;
 
 namespace BarcodePriceChecker.Tests;
@@ -141,4 +143,49 @@ public class PriceComparisonServiceTests
         result.Offers.Should().BeEmpty(); // não deve lançar exceção
     }
 
+    [Fact]
+    public void BuscaPeParser_WhenNextDataHasHits_ReturnsOffers()
+    {
+        // Arrange
+        var html = """
+            <html>
+              <body>
+                <script id="__NEXT_DATA__" type="application/json">
+                {
+                  "props": {
+                    "pageProps": {
+                      "initialReduxState": {
+                        "hits": {
+                          "hits": [
+                            {
+                              "name": "Café Solúvel Nescafé Vidro 100g, Matinal",
+                              "price": 33.24,
+                              "merchantName": "Magazine Luiza",
+                              "url": "/lead?oid=1539433769"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+                </script>
+              </body>
+            </html>
+            """;
+
+        var service = new BuscaPePriceService(new HttpClient(), NullLogger<BuscaPePriceService>.Instance);
+        var method = typeof(BuscaPePriceService).GetMethod("ParseOffers", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        // Act
+        var offers = ((IEnumerable<PriceOffer>)method!.Invoke(service, new object[] { html, "7891000315507" })!).ToList();
+
+        // Assert
+        offers.Should().ContainSingle();
+        offers[0].ProductName.Should().Be("Café Solúvel Nescafé Vidro 100g, Matinal");
+        offers[0].Price.Should().Be(33.24m);
+        offers[0].Seller.Should().Be("Magazine Luiza");
+        offers[0].Barcode.Should().Be("7891000315507");
+        offers[0].Url.Should().Be("https://www.buscape.com.br/lead?oid=1539433769");
+    }
 }
