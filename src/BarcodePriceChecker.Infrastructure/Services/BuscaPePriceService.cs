@@ -160,7 +160,11 @@ public class BuscaPePriceService : IPriceSearchService
     private static string BuildBuscaPeUrl(string url)
     {
         if (string.IsNullOrWhiteSpace(url)) return "https://www.buscape.com.br";
-        if (Uri.TryCreate(url, UriKind.Absolute, out _)) return url;
+        if (Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri) &&
+            (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
+        {
+            return url;
+        }
 
         return $"https://www.buscape.com.br{url}";
     }
